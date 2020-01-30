@@ -480,7 +480,6 @@ namespace UnityEngine.Rendering.Universal
             {
                 cameraData.volumeLayerMask = 1; // "Default"
                 cameraData.volumeTrigger = null;
-                cameraData.postProcessEnabled = CoreUtils.ArePostProcessesEnabled(baseCamera);
                 cameraData.isStopNaNEnabled = false;
                 cameraData.isDitheringEnabled = false;
                 cameraData.antialiasing = AntialiasingMode.None;
@@ -490,7 +489,6 @@ namespace UnityEngine.Rendering.Universal
             {
                 cameraData.volumeLayerMask = baseAdditionalCameraData.volumeLayerMask;
                 cameraData.volumeTrigger = baseAdditionalCameraData.volumeTrigger == null ? baseCamera.transform : baseAdditionalCameraData.volumeTrigger;
-                cameraData.postProcessEnabled = baseAdditionalCameraData.renderPostProcessing;
                 cameraData.isStopNaNEnabled = cameraData.postProcessEnabled && baseAdditionalCameraData.stopNaN && SystemInfo.graphicsShaderLevel >= 35;
                 cameraData.isDitheringEnabled = cameraData.postProcessEnabled && baseAdditionalCameraData.dithering;
                 cameraData.antialiasing = cameraData.postProcessEnabled ? baseAdditionalCameraData.antialiasing : AntialiasingMode.None;
@@ -500,7 +498,6 @@ namespace UnityEngine.Rendering.Universal
             {
                 cameraData.volumeLayerMask = 1; // "Default"
                 cameraData.volumeTrigger = null;
-                cameraData.postProcessEnabled = false;
                 cameraData.isStopNaNEnabled = false;
                 cameraData.isDitheringEnabled = false;
                 cameraData.antialiasing = AntialiasingMode.None;
@@ -584,6 +581,7 @@ namespace UnityEngine.Rendering.Universal
             {
                 cameraData.renderType = CameraRenderType.Base;
                 cameraData.clearDepth = true;
+                cameraData.postProcessEnabled = CoreUtils.ArePostProcessesEnabled(camera);
                 cameraData.requiresDepthTexture = settings.supportsCameraDepthTexture;
                 cameraData.requiresOpaqueTexture = settings.supportsCameraOpaqueTexture;
                 cameraData.renderer = asset.scriptableRenderer;
@@ -592,6 +590,7 @@ namespace UnityEngine.Rendering.Universal
             {
                 cameraData.renderType = additionalCameraData.renderType;
                 cameraData.clearDepth = (additionalCameraData.renderType != CameraRenderType.Base) ? additionalCameraData.clearDepth : true;
+                cameraData.postProcessEnabled = additionalCameraData.renderPostProcessing;
                 cameraData.maxShadowDistance = (additionalCameraData.renderShadows) ? cameraData.maxShadowDistance : 0.0f;
                 cameraData.requiresDepthTexture = additionalCameraData.requiresDepthTexture;
                 cameraData.requiresOpaqueTexture = additionalCameraData.requiresColorTexture;
@@ -601,6 +600,7 @@ namespace UnityEngine.Rendering.Universal
             {
                 cameraData.renderType = CameraRenderType.Base;
                 cameraData.clearDepth = true;
+                cameraData.postProcessEnabled = false;
                 cameraData.requiresDepthTexture = settings.supportsCameraDepthTexture;
                 cameraData.requiresOpaqueTexture = settings.supportsCameraOpaqueTexture;
                 cameraData.renderer = asset.scriptableRenderer;

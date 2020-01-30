@@ -132,11 +132,13 @@ namespace UnityEngine.Rendering.Universal
             }
 
             // We only apply post-processing at the end of the stack, i.e, when we are rendering a camera that resolves rendering to camera target.
-            bool applyPostProcessing = cameraData.postProcessEnabled && renderingData.resolveFinalTarget;
+            bool applyPostProcessing = cameraData.postProcessEnabled;
             var postProcessFeatureSet = UniversalRenderPipeline.asset.postProcessingFeatureSet;
 
             // We generate color LUT in the base camera only. This allows us to not break render pass execution for overlay cameras.
-            bool generateColorGradingLUT = cameraData.postProcessEnabled && cameraData.renderType == CameraRenderType.Base;
+            // TODO: ColorGrading needs to be reworked to be able to support multiple pp stacks in a camera stack.
+            // both LUT texture and Uber shader work is required.
+            bool generateColorGradingLUT = cameraData.postProcessEnabled;// && cameraData.renderType == CameraRenderType.Base;
             bool isSceneViewCamera = cameraData.isSceneViewCamera;
             bool requiresDepthTexture = cameraData.requiresDepthTexture;
             bool isStereoEnabled = cameraData.isStereoEnabled;
@@ -263,47 +265,36 @@ namespace UnityEngine.Rendering.Universal
             bool hasCaptureActions = renderingData.cameraData.captureActions != null && resolveFinalTarget;
             bool afterRenderExists = hasCaptureActions || hasAfterRendering;
 
-            bool requiresFinalPostProcessPass = applyPostProcessing &&
+            bool requiresFinalPostProcessPass = applyPostProcessing && resolveFinalTarget &&
                                      renderingData.cameraData.antialiasing == AntialiasingMode.FastApproximateAntialiasing;
 
-
-#region Post-processing v2 support
-#if POST_PROCESSING_STACK_2_0_0_OR_NEWER
-            // To keep things clean we'll separate the logic from builtin PP and PPv2 - expect some copy/pasting
-            if (postProcessFeatureSet == PostProcessingFeatureSet.PostProcessingV2)
+            // if we have additional filters
+            // we need to stay in a RT
+            if (afterRenderExists)
             {
-                // if we have additional filters
-                // we need to stay in a RT
-                if (afterRenderExists)
+                bool willRenderFinalPass = (m_ActiveCameraColorAttachment != RenderTargetHandle.CameraTarget);
+                // perform post with src / dest the same
+                if (applyPostProcessing)
                 {
-                    // perform post with src / dest the same
-                    if (applyPostProcessing)
-                    {
-                        m_PostProcessPassCompat.Setup(cameraTargetDescriptor, m_ActiveCameraColorAttachment, m_ActiveCameraColorAttachment);
-                        EnqueuePass(m_PostProcessPassCompat);
-                    }
-
-                    //now blit into the final target
-                    if (m_ActiveCameraColorAttachment != RenderTargetHandle.CameraTarget)
-                    {
-                        if (renderingData.cameraData.captureActions != null)
-                        {
-                            m_CapturePass.Setup(m_ActiveCameraColorAttachment);
-                            EnqueuePass(m_CapturePass);
-                        }
-
-                        m_FinalBlitPass.Setup(cameraTargetDescriptor, m_ActiveCameraColorAttachment);
-                        EnqueuePass(m_FinalBlitPass);
-                    }
+                    m_PostProcessPass.Setup(cameraTargetDescriptor, m_ActiveCameraColorAttachment, m_AfterPostProcessColor, m_ActiveCameraDepthAttachment, m_ColorGradingLut, requiresFinalPostProcessPass, !willRenderFinalPass);
+                    EnqueuePass(m_PostProcessPass);
                 }
-                else
+
+                //now blit into the final target
+                if (m_ActiveCameraColorAttachment != RenderTargetHandle.CameraTarget)
                 {
-                    if (applyPostProcessing)
+                    if (renderingData.cameraData.captureActions != null)
                     {
-                        m_PostProcessPassCompat.Setup(cameraTargetDescriptor, m_ActiveCameraColorAttachment, RenderTargetHandle.CameraTarget);
-                        EnqueuePass(m_PostProcessPassCompat);
+                        m_CapturePass.Setup(m_ActiveCameraColorAttachment);
+                        EnqueuePass(m_CapturePass);
                     }
-                    else if (m_ActiveCameraColorAttachment != RenderTargetHandle.CameraTarget && resolveFinalTarget)
+
+                    if (requiresFinalPostProcessPass)
+                    {
+                        m_FinalPostProcessPass.SetupFinalPass(m_AfterPostProcessColor);
+                        EnqueuePass(m_FinalPostProcessPass);
+                    }
+                    else
                     {
                         m_FinalBlitPass.Setup(cameraTargetDescriptor, m_ActiveCameraColorAttachment);
                         EnqueuePass(m_FinalBlitPass);
@@ -311,47 +302,11 @@ namespace UnityEngine.Rendering.Universal
                 }
             }
             else
-#endif
-#endregion
-
             {
-                // if we have additional filters
-                // we need to stay in a RT
-                if (afterRenderExists)
+                if (applyPostProcessing)
                 {
-                    bool willRenderFinalPass = (m_ActiveCameraColorAttachment != RenderTargetHandle.CameraTarget);
-
-                    // perform post with src / dest the same
-                    if (applyPostProcessing)
-                    {
-                        m_PostProcessPass.Setup(cameraTargetDescriptor, m_ActiveCameraColorAttachment, m_AfterPostProcessColor, m_ActiveCameraDepthAttachment, m_ColorGradingLut, requiresFinalPostProcessPass, !willRenderFinalPass);
-                        EnqueuePass(m_PostProcessPass);
-                    }
-
-                    //now blit into the final target
-                    if (m_ActiveCameraColorAttachment != RenderTargetHandle.CameraTarget)
-                    {
-                        if (renderingData.cameraData.captureActions != null)
-                        {
-                            m_CapturePass.Setup(m_ActiveCameraColorAttachment);
-                            EnqueuePass(m_CapturePass);
-                        }
-
-                        if (requiresFinalPostProcessPass)
-                        {
-                            m_FinalPostProcessPass.SetupFinalPass(m_AfterPostProcessColor);
-                            EnqueuePass(m_FinalPostProcessPass);
-                        }
-                        else
-                        {
-                            m_FinalBlitPass.Setup(cameraTargetDescriptor, applyPostProcessing ? m_AfterPostProcessColor : m_ActiveCameraColorAttachment);
-                            EnqueuePass(m_FinalBlitPass);
-                        }
-                    }
-                }
-                else
-                {
-                    if (applyPostProcessing)
+                    // Is this the last camera rendering in the stack?
+                    if (resolveFinalTarget)
                     {
                         if (requiresFinalPostProcessPass)
                         {
@@ -366,11 +321,16 @@ namespace UnityEngine.Rendering.Universal
                             EnqueuePass(m_PostProcessPass);
                         }
                     }
-                    else if (m_ActiveCameraColorAttachment != RenderTargetHandle.CameraTarget && resolveFinalTarget)
+                    else
                     {
-                        m_FinalBlitPass.Setup(cameraTargetDescriptor, m_ActiveCameraColorAttachment);
-                        EnqueuePass(m_FinalBlitPass);
+                        m_PostProcessPass.Setup(cameraTargetDescriptor, m_ActiveCameraColorAttachment, m_AfterPostProcessColor, m_ActiveCameraDepthAttachment, m_ColorGradingLut, false, false);
+                        EnqueuePass(m_PostProcessPass);
                     }
+                }
+                else if (m_ActiveCameraColorAttachment != RenderTargetHandle.CameraTarget && resolveFinalTarget)
+                {
+                    m_FinalBlitPass.Setup(cameraTargetDescriptor, m_ActiveCameraColorAttachment);
+                    EnqueuePass(m_FinalBlitPass);
                 }
             }
 
