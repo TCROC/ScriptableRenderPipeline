@@ -116,7 +116,7 @@ namespace UnityEditor.Rendering.Universal
                 new GUIContent("High")
             };
             public static int[] antialiasingQualityValues = { 0, 1, 2 };
-            
+
         };
 
         ReorderableList m_LayerList;
@@ -198,7 +198,7 @@ namespace UnityEditor.Rendering.Universal
                 }
             }
         }
-        
+
         public new void OnEnable()
         {
             m_UniversalRenderPipeline = GraphicsSettings.renderPipelineAsset as UniversalRenderPipelineAsset;
@@ -310,15 +310,33 @@ namespace UnityEditor.Rendering.Universal
                 else
                 {
                     EditorGUI.LabelField(rect, cam.name, type.ToString());
+
+                    // Printing if Post Processing is on or not.
+                    var isPostActive = cam.gameObject.GetComponent<UniversalAdditionalCameraData>().renderPostProcessing;
+                    Rect selectRect = new Rect(rect.width-20, rect.y, 50, EditorGUIUtility.singleLineHeight);
+
+                    // If Post Processing is not set on the camera this is disabled.
+                    GUI.enabled = m_AdditionalCameraDataRenderPostProcessing.boolValue;
+                    EditorGUI.LabelField(selectRect, isPostActive.ToString());
+
+                    GUI.enabled = true;
                 }
+
 
                 EditorGUIUtility.labelWidth = labelWidth;
             }
             else
             {
+                // HIG doesnt allow us to remove data on a re-draw and without a user input.
+                GUIStyle errorStyle = new GUIStyle(EditorStyles.label) { padding = new RectOffset { left = -16 } };
+                m_NameContent.text = "MISSING CAMERA";
+                string warningInfo = "Camera is missing";
+                EditorGUI.LabelField(rect, m_NameContent, TempContent("", warningInfo, m_ErrorIcon), errorStyle);
+
+                // We shouldn't do this!
                 // Automagicaly deletes the entry if a user has removed a camera from the scene
-                m_AdditionalCameraDataCameras.DeleteArrayElementAtIndex(index);
-                m_AdditionalCameraDataSO.ApplyModifiedProperties();
+                //m_AdditionalCameraDataCameras.DeleteArrayElementAtIndex(index);
+                //m_AdditionalCameraDataSO.ApplyModifiedProperties();
 
                 // Need to clean out the errorCamera list here.
                 errorCameras.Clear();
@@ -565,6 +583,7 @@ namespace UnityEditor.Rendering.Universal
                 {
                     EditorGUILayout.PropertyField(m_AdditionalCameraClearDepth, Styles.clearDepth);
                     m_AdditionalCameraDataSO.ApplyModifiedProperties();
+                    DrawPostProcessingOverlay();
                 }
 
                 DrawOpaqueTexture();
@@ -581,6 +600,36 @@ namespace UnityEditor.Rendering.Universal
                 EditorGUILayout.Space();
             }
             EditorGUILayout.EndFoldoutHeaderGroup();
+        }
+
+        void DrawPostProcessingOverlay()
+        {
+            bool hasChanged = false;
+            bool selectedRenderPostProcessing;
+
+            if (m_AdditionalCameraDataSO == null)
+            {
+                selectedRenderPostProcessing = false;
+            }
+            else
+            {
+                m_AdditionalCameraDataSO.Update();
+                selectedRenderPostProcessing = m_AdditionalCameraDataRenderPostProcessing.boolValue;
+            }
+
+            hasChanged |= DrawToggle(m_AdditionalCameraDataRenderPostProcessing, ref selectedRenderPostProcessing, Styles.renderPostProcessing);
+
+            if (hasChanged)
+            {
+                if (m_AdditionalCameraDataSO == null)
+                {
+                    m_AdditionalCameraData = Undo.AddComponent<UniversalAdditionalCameraData>(camera.gameObject);
+                    init(m_AdditionalCameraData);
+                }
+
+                m_AdditionalCameraDataRenderPostProcessing.boolValue = selectedRenderPostProcessing;
+                m_AdditionalCameraDataSO.ApplyModifiedProperties();
+            }
         }
 
         void DrawOutputSettings()
