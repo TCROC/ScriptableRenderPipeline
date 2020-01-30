@@ -11,13 +11,9 @@ void SurfaceGradientGenBasisTB(float3 nrmVertexNormal, float3 sigmaX, float3 sig
     // invC0 represents (dXds, dYds); but we don't divide by determinant (scale by sign instead)
     float2 invC0 = sign_det * float2(dSTdy.y, -dSTdx.y);
     vT = sigmaX * invC0.x + sigmaY * invC0.y;
-#if !defined(SHADER_API_GLES)
-    vT.x = SanitizeFinite(vT.x);
-    vT.y = SanitizeFinite(vT.y);
-    vT.z = SanitizeFinite(vT.z);
-#endif
+    
     if (abs(det) > 0.0)
-        vT = SafeNormalize(vT);
+        vT = normalize(vT);
     vB = (sign_det * flipSign) * cross(nrmVertexNormal, vT);
 }
 
