@@ -313,11 +313,14 @@ namespace UnityEditor.Rendering.Universal
 
                     // Printing if Post Processing is on or not.
                     var isPostActive = cam.gameObject.GetComponent<UniversalAdditionalCameraData>().renderPostProcessing;
-                    Rect selectRect = new Rect(rect.width-20, rect.y, 50, EditorGUIUtility.singleLineHeight);
+                    if (isPostActive)
+                    {
+                        Rect selectRect = new Rect(rect.width - 20, rect.y, 50, EditorGUIUtility.singleLineHeight);
 
-                    // If Post Processing is not set on the camera this is disabled.
-                    GUI.enabled = m_AdditionalCameraDataRenderPostProcessing.boolValue;
-                    EditorGUI.LabelField(selectRect, isPostActive.ToString());
+                        // If Post Processing is not set on the camera this is disabled.
+                        GUI.enabled = m_AdditionalCameraDataRenderPostProcessing.boolValue;
+                        EditorGUI.LabelField(selectRect, "PP");
+                    }
 
                     GUI.enabled = true;
                 }
