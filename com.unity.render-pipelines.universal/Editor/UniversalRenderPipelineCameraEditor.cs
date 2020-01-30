@@ -317,12 +317,8 @@ namespace UnityEditor.Rendering.Universal
                     {
                         Rect selectRect = new Rect(rect.width - 20, rect.y, 50, EditorGUIUtility.singleLineHeight);
 
-                        // If Post Processing is not set on the camera this is disabled.
-                        GUI.enabled = m_AdditionalCameraDataRenderPostProcessing.boolValue;
                         EditorGUI.LabelField(selectRect, "PP");
                     }
-
-                    GUI.enabled = true;
                 }
 
 
