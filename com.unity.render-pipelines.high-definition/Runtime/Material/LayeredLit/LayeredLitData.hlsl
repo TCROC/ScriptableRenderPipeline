@@ -650,6 +650,8 @@ float3 ComputeMainBaseColorInfluence(float influenceMask, float3 baseColor0, flo
 
 void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs posInput, out SurfaceData surfaceData, out BuiltinData builtinData RAY_TRACING_OPTIONAL_PARAMETERS)
 {
+    input.texCoord1 = ((_UVMappingMask0.y + _UVMappingMask1.y + _UVMappingMask2.y + _UVMappingMask3.y) > 0) ? input.texCoord1 : 0;
+    
 #ifdef LOD_FADE_CROSSFADE // enable dithering LOD transition if user select CrossFade transition in LOD group
     LODDitheringTransition(ComputeFadeMaskSeed(V, posInput.positionSS), unity_LODFade.x);
 #endif
