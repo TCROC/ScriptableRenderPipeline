@@ -458,21 +458,25 @@ namespace UnityEditor
                     case BlendMode.Alpha:
                         material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
                         material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                        material.DisableKeyword("_ALPHAADDITIVE_ON");
                         material.DisableKeyword("_ALPHAPREMULTIPLY_ON");
                         break;
                     case BlendMode.Premultiply:
                         material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.One);
                         material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                        material.DisableKeyword("_ALPHAADDITIVE_ON"); 
                         material.EnableKeyword("_ALPHAPREMULTIPLY_ON");
                         break;
                     case BlendMode.Additive:
-                        material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.One);
+                        material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
                         material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.One);
                         material.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+                        material.EnableKeyword("_ALPHAADDITIVE_ON");
                         break;
                     case BlendMode.Multiply:
                         material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.DstColor);
                         material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.Zero);
+                        material.DisableKeyword("_ALPHAADDITIVE_ON"); 
                         material.DisableKeyword("_ALPHAPREMULTIPLY_ON");
                         material.EnableKeyword("_ALPHAMODULATE_ON");
                         break;
