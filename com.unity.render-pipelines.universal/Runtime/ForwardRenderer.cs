@@ -138,10 +138,12 @@ namespace UnityEngine.Rendering.Universal
             }
 
             // We only apply post-processing at the end of the stack, i.e, when we are rendering a camera that resolves rendering to camera target.
-            bool applyPostProcessing = cameraData.postProcessEnabled && renderingData.resolveFinalTarget;
+            bool applyPostProcessing = cameraData.postProcessEnabled;
 
             // We generate color LUT in the base camera only. This allows us to not break render pass execution for overlay cameras.
-            bool generateColorGradingLUT = cameraData.postProcessEnabled && cameraData.renderType == CameraRenderType.Base;
+            // TODO: ColorGrading needs to be reworked to be able to support multiple pp stacks in a camera stack.
+            // both LUT texture and Uber shader work is required.
+            bool generateColorGradingLUT = cameraData.postProcessEnabled;// && cameraData.renderType == CameraRenderType.Base;
             bool isSceneViewCamera = cameraData.isSceneViewCamera;
             bool requiresDepthTexture = cameraData.requiresDepthTexture;
             bool isStereoEnabled = cameraData.isStereoEnabled;
@@ -256,7 +258,7 @@ namespace UnityEngine.Rendering.Universal
             bool hasCaptureActions = renderingData.cameraData.captureActions != null && resolveFinalTarget;
             bool afterRenderExists = hasCaptureActions || hasAfterRendering;
 
-            bool requiresFinalPostProcessPass = applyPostProcessing &&
+            bool requiresFinalPostProcessPass = applyPostProcessing && resolveFinalTarget &&
                                      renderingData.cameraData.antialiasing == AntialiasingMode.FastApproximateAntialiasing;
 
             // if we have additional filters
@@ -296,16 +298,25 @@ namespace UnityEngine.Rendering.Universal
             {
                 if (applyPostProcessing)
                 {
-                    if (requiresFinalPostProcessPass)
+                    // Is this the last camera rendering in the stack?
+                    if (resolveFinalTarget)
                     {
-                        m_PostProcessPass.Setup(cameraTargetDescriptor, m_ActiveCameraColorAttachment, m_AfterPostProcessColor, m_ActiveCameraDepthAttachment, m_ColorGradingLut, true, false);
-                        EnqueuePass(m_PostProcessPass);
-                        m_FinalPostProcessPass.SetupFinalPass(m_AfterPostProcessColor);
-                        EnqueuePass(m_FinalPostProcessPass);
+                        if (requiresFinalPostProcessPass)
+                        {
+                            m_PostProcessPass.Setup(cameraTargetDescriptor, m_ActiveCameraColorAttachment, m_AfterPostProcessColor, m_ActiveCameraDepthAttachment, m_ColorGradingLut, true, false);
+                            EnqueuePass(m_PostProcessPass);
+                            m_FinalPostProcessPass.SetupFinalPass(m_AfterPostProcessColor);
+                            EnqueuePass(m_FinalPostProcessPass);
+                        }
+                        else
+                        {
+                            m_PostProcessPass.Setup(cameraTargetDescriptor, m_ActiveCameraColorAttachment, RenderTargetHandle.CameraTarget, m_ActiveCameraDepthAttachment, m_ColorGradingLut, false, true);
+                            EnqueuePass(m_PostProcessPass);
+                        }
                     }
                     else
                     {
-                        m_PostProcessPass.Setup(cameraTargetDescriptor, m_ActiveCameraColorAttachment, RenderTargetHandle.CameraTarget, m_ActiveCameraDepthAttachment, m_ColorGradingLut, false, true);
+                        m_PostProcessPass.Setup(cameraTargetDescriptor, m_ActiveCameraColorAttachment, m_AfterPostProcessColor, m_ActiveCameraDepthAttachment, m_ColorGradingLut, false, false);
                         EnqueuePass(m_PostProcessPass);
                     }
                 }
