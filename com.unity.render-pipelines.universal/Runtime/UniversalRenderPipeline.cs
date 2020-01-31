@@ -255,7 +255,7 @@ namespace UnityEngine.Rendering.Universal
 #endif
 
                 var cullResults = context.Cull(ref cullingParameters);
-                InitializeRenderingData(asset, ref cameraData, ref cullResults, requiresBlitToBackbuffer, out var renderingData);
+                InitializeRenderingData(asset, ref cameraData, ref cullResults, requiresBlitToBackbuffer, cameraData.postProcessEnabled, out var renderingData);
 
                 renderer.Setup(context, ref renderingData);
                 renderer.Execute(context, ref renderingData);
@@ -284,6 +284,8 @@ namespace UnityEngine.Rendering.Universal
             var renderer = baseCameraAdditionalData?.scriptableRenderer;
             bool supportsCameraStacking = renderer != null && renderer.supportedRenderingFeatures.cameraStacking;
             List<Camera> cameraStack = (supportsCameraStacking) ? baseCameraAdditionalData?.cameraStack : null;
+
+            bool postProcessingEnabled = false;
 
             // We need to know the last active camera in the stack to be able to resolve
             // rendering to screen when rendering it. The last camera in the stack is not
@@ -318,6 +320,7 @@ namespace UnityEngine.Rendering.Universal
                             }
                             else
                             {
+                                postProcessingEnabled |= data.renderPostProcessing;
                                 lastActiveOverlayCameraIndex = i;
                             }
                         }
@@ -620,7 +623,7 @@ namespace UnityEngine.Rendering.Universal
         }
 
         static void InitializeRenderingData(UniversalRenderPipelineAsset settings, ref CameraData cameraData, ref CullingResults cullResults,
-            bool requiresBlitToBackbuffer, out RenderingData renderingData)
+            bool requiresBlitToBackbuffer, bool postProcessingEnabled, out RenderingData renderingData)
         {
             var visibleLights = cullResults.visibleLights;
 
@@ -663,6 +666,7 @@ namespace UnityEngine.Rendering.Universal
 
             bool isOffscreenCamera = cameraData.targetTexture != null && !cameraData.isSceneViewCamera;
             renderingData.resolveFinalTarget = requiresBlitToBackbuffer;
+            renderingData.postProcessingEnabled = postProcessingEnabled;
 #pragma warning disable // avoid warning because killAlphaInFinalBlit has attribute Obsolete
             renderingData.killAlphaInFinalBlit = false;
 #pragma warning restore

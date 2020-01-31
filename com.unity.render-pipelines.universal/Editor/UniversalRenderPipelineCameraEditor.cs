@@ -44,7 +44,7 @@ namespace UnityEditor.Rendering.Universal
             public static GUIContent volumeLayerMask = EditorGUIUtility.TrTextContent("Volume Mask", "This camera will only be affected by volumes in the selected scene-layers.");
             public static GUIContent volumeTrigger = EditorGUIUtility.TrTextContent("Volume Trigger", "A transform that will act as a trigger for volume blending. If none is set, the camera itself will act as a trigger.");
 
-            public static GUIContent renderPostProcessing = EditorGUIUtility.TrTextContent("Post Processing", "Enable this to make this camera render post-processing effects. Post-processing will be applied while rendering the last camera int the stack.");
+            public static GUIContent renderPostProcessing = EditorGUIUtility.TrTextContent("Post Processing", "Enable this to make this camera render post-processing effects.");
             public static GUIContent antialiasing = EditorGUIUtility.TrTextContent("Anti-aliasing", "The anti-aliasing method to use.");
             public static GUIContent antialiasingQuality = EditorGUIUtility.TrTextContent("Quality", "The quality level to use for the selected anti-aliasing method.");
             public static GUIContent stopNaN = EditorGUIUtility.TrTextContent("Stop NaN", "Automatically replaces NaN/Inf in shaders by a black pixel to avoid breaking some effects. This will affect performances and should only be used if you experience NaN issues that you can't fix. Has no effect on GLES2 platforms.");
@@ -847,9 +847,8 @@ namespace UnityEditor.Rendering.Universal
 
             hasChanged |= DrawToggle(m_AdditionalCameraDataRenderPostProcessing, ref selectedRenderPostProcessing, Styles.renderPostProcessing);
 
-            if (selectedRenderPostProcessing && UniversalRenderPipeline.asset?.postProcessingFeatureSet != PostProcessingFeatureSet.PostProcessingV2)
+            if (UniversalRenderPipeline.asset?.postProcessingFeatureSet != PostProcessingFeatureSet.PostProcessingV2)
             {
-                EditorGUI.indentLevel++;
                 hasChanged |= DrawIntPopup(m_AdditionalCameraDataAntialiasing, ref selectedAntialiasing, Styles.antialiasing, Styles.antialiasingOptions, Styles.antialiasingValues);
 
                 if (selectedAntialiasing == AntialiasingMode.SubpixelMorphologicalAntiAliasing)
@@ -863,7 +862,6 @@ namespace UnityEditor.Rendering.Universal
 
                 hasChanged |= DrawToggle(m_AdditionalCameraDataStopNaN, ref selectedStopNaN, Styles.stopNaN);
                 hasChanged |= DrawToggle(m_AdditionalCameraDataDithering, ref selectedDithering, Styles.dithering);
-                EditorGUI.indentLevel--;
             }
 
             if (hasChanged)
