@@ -315,7 +315,7 @@ namespace UnityEngine.Rendering.Universal
                         // if we need to do final post, destination is a temp post-processing texture
                         var destination = (applyFinalPostProcessing) ? m_AfterPostProcessColor : RenderTargetHandle.CameraTarget;
                         bool enableSRGBConvertion = !applyFinalPostProcessing;
-                        m_PostProcessPass.Setup(cameraTargetDescriptor, m_ActiveCameraColorAttachment, m_AfterPostProcessColor, m_ActiveCameraDepthAttachment, m_ColorGradingLut, applyFinalPostProcessing, enableSRGBConvertion);
+                        m_PostProcessPass.Setup(cameraTargetDescriptor, m_ActiveCameraColorAttachment, destination, m_ActiveCameraDepthAttachment, m_ColorGradingLut, applyFinalPostProcessing, enableSRGBConvertion);
                         EnqueuePass(m_PostProcessPass);
                     }
 
@@ -330,7 +330,7 @@ namespace UnityEngine.Rendering.Universal
 
                     // if post-processing then we already resolve to screen while doing post.
                     // Also only do final blit if camera is not rendering to RT.
-                    bool doFinalBlit = !applyFinalPostProcessing && !applyFinalPostProcessing && m_ActiveCameraColorAttachment != RenderTargetHandle.CameraTarget;
+                    bool doFinalBlit = !applyPostProcessing && !applyFinalPostProcessing && m_ActiveCameraColorAttachment != RenderTargetHandle.CameraTarget;
                     if (doFinalBlit)
                     {
                         m_FinalBlitPass.Setup(cameraTargetDescriptor, m_ActiveCameraColorAttachment);

@@ -285,7 +285,7 @@ namespace UnityEngine.Rendering.Universal
             bool supportsCameraStacking = renderer != null && renderer.supportedRenderingFeatures.cameraStacking;
             List<Camera> cameraStack = (supportsCameraStacking) ? baseCameraAdditionalData?.cameraStack : null;
 
-            bool postProcessingEnabled = false;
+            bool anyProcessingEnabled = baseCameraAdditionalData.renderPostProcessing;
 
             // We need to know the last active camera in the stack to be able to resolve
             // rendering to screen when rendering it. The last camera in the stack is not
@@ -320,7 +320,7 @@ namespace UnityEngine.Rendering.Universal
                             }
                             else
                             {
-                                postProcessingEnabled |= data.renderPostProcessing;
+                                anyProcessingEnabled |= data.renderPostProcessing;
                                 lastActiveOverlayCameraIndex = i;
                             }
                         }
@@ -492,9 +492,9 @@ namespace UnityEngine.Rendering.Universal
             {
                 cameraData.volumeLayerMask = baseAdditionalCameraData.volumeLayerMask;
                 cameraData.volumeTrigger = baseAdditionalCameraData.volumeTrigger == null ? baseCamera.transform : baseAdditionalCameraData.volumeTrigger;
-                cameraData.isStopNaNEnabled = cameraData.postProcessEnabled && baseAdditionalCameraData.stopNaN && SystemInfo.graphicsShaderLevel >= 35;
-                cameraData.isDitheringEnabled = cameraData.postProcessEnabled && baseAdditionalCameraData.dithering;
-                cameraData.antialiasing = cameraData.postProcessEnabled ? baseAdditionalCameraData.antialiasing : AntialiasingMode.None;
+                cameraData.isStopNaNEnabled = baseAdditionalCameraData.stopNaN && SystemInfo.graphicsShaderLevel >= 35;
+                cameraData.isDitheringEnabled = baseAdditionalCameraData.dithering;
+                cameraData.antialiasing = baseAdditionalCameraData.antialiasing;
                 cameraData.antialiasingQuality = baseAdditionalCameraData.antialiasingQuality;
             }
             else
@@ -507,19 +507,6 @@ namespace UnityEngine.Rendering.Universal
                 cameraData.antialiasingQuality = AntialiasingQuality.High;
             }
 
-            // PPv2 compatibility
-#if POST_PROCESSING_STACK_2_0_0_OR_NEWER
-#pragma warning disable 0618 // Obsolete
-            if (settings.postProcessingFeatureSet == PostProcessingFeatureSet.PostProcessingV2)
-            {
-                baseCamera.TryGetComponent(out cameraData.postProcessLayer);
-                cameraData.postProcessEnabled &= cameraData.postProcessLayer != null && cameraData.postProcessLayer.isActiveAndEnabled;
-            }
-#pragma warning restore 0618
-#endif
-
-            // Disables post if GLes2
-            cameraData.postProcessEnabled &= SystemInfo.graphicsDeviceType != GraphicsDeviceType.OpenGLES2;
 
             ///////////////////////////////////////////////////////////////////
             // Settings that control output of the camera                     /
@@ -609,8 +596,17 @@ namespace UnityEngine.Rendering.Universal
                 cameraData.renderer = asset.scriptableRenderer;
             }
 
+            // Disables post if GLes2
+            cameraData.postProcessEnabled &= SystemInfo.graphicsDeviceType != GraphicsDeviceType.OpenGLES2;
+
 #if POST_PROCESSING_STACK_2_0_0_OR_NEWER
 #pragma warning disable 0618 // Obsolete
+			if (settings.postProcessingFeatureSet == PostProcessingFeatureSet.PostProcessingV2)
+            {
+                camera.TryGetComponent(out cameraData.postProcessLayer);
+                cameraData.postProcessEnabled &= cameraData.postProcessLayer != null && cameraData.postProcessLayer.isActiveAndEnabled;
+            }
+			
             bool depthRequiredForPostFX = settings.postProcessingFeatureSet == PostProcessingFeatureSet.PostProcessingV2
                 ? cameraData.postProcessEnabled
                 : CheckPostProcessForDepth(cameraData);
