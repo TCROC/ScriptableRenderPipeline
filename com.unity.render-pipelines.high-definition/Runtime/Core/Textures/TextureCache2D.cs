@@ -110,13 +110,12 @@ namespace UnityEngine.Rendering.HighDefinition
             {
                 for (int mipIdx = 0; mipIdx < mipCount; ++mipIdx)
                 {
-                    {
-                        Graphics.SetRenderTarget(m_Cache, mipIdx, CubemapFace.Unknown, depthSlice);
-                        GL.Clear(false, true, Color.clear);
-                    }
+                    Graphics.SetRenderTarget(m_Cache, mipIdx, CubemapFace.Unknown, depthSlice);
+                    GL.Clear(false, true, Color.clear);
                 }
             }
         }
+
         public void Release()
         {
             CoreUtils.Destroy(m_Cache);
