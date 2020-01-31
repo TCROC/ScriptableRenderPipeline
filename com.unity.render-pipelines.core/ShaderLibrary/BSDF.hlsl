@@ -1,6 +1,8 @@
 #ifndef UNITY_BSDF_INCLUDED
 #define UNITY_BSDF_INCLUDED
 
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
+
 // Note: All NDF and diffuse term have a version with and without divide by PI.
 // Version with divide by PI are use for direct lighting.
 // Version without divide by PI are use for image based lighting where often the PI cancel during importance sampling
