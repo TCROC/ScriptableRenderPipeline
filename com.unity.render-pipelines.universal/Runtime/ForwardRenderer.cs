@@ -273,6 +273,54 @@ namespace UnityEngine.Rendering.Universal
             // However when there are render passes executing after post we avoid resolving to screen so rendering continues (before sRGBConvertion etc)
             bool dontResolvePostProcessingToCameraTarget = hasCaptureActions || hasPassesAfterPostProcessing || applyFinalPostProcessing;
 
+            #region Post-processing v2 support
+#if POST_PROCESSING_STACK_2_0_0_OR_NEWER
+            // To keep things clean we'll separate the logic from builtin PP and PPv2 - expect some copy/pasting
+            if (postProcessFeatureSet == PostProcessingFeatureSet.PostProcessingV2)
+            {
+                // if we have additional filters
+                // we need to stay in a RT
+                if (hasPassesAfterPostProcessing)
+                {
+                    // perform post with src / dest the same
+                    if (applyPostProcessing)
+                    {
+                        m_PostProcessPassCompat.Setup(cameraTargetDescriptor, m_ActiveCameraColorAttachment, m_ActiveCameraColorAttachment);
+                        EnqueuePass(m_PostProcessPassCompat);
+                    }
+
+                    //now blit into the final target
+                    if (m_ActiveCameraColorAttachment != RenderTargetHandle.CameraTarget)
+                    {
+                        if (renderingData.cameraData.captureActions != null)
+                        {
+                            m_CapturePass.Setup(m_ActiveCameraColorAttachment);
+                            EnqueuePass(m_CapturePass);
+                        }
+
+                        m_FinalBlitPass.Setup(cameraTargetDescriptor, m_ActiveCameraColorAttachment);
+                        EnqueuePass(m_FinalBlitPass);
+                    }
+                }
+                else
+                {
+                    if (applyPostProcessing)
+                    {
+                        m_PostProcessPassCompat.Setup(cameraTargetDescriptor, m_ActiveCameraColorAttachment, RenderTargetHandle.CameraTarget);
+                        EnqueuePass(m_PostProcessPassCompat);
+                    }
+                    else if (m_ActiveCameraColorAttachment != RenderTargetHandle.CameraTarget)
+                    {
+                        m_FinalBlitPass.Setup(cameraTargetDescriptor, m_ActiveCameraColorAttachment);
+                        EnqueuePass(m_FinalBlitPass);
+                    }
+                }
+            }
+            else
+#endif
+            #endregion
+            {
+
             if (lastCameraInTheStack)
             {
                 // Post-processing will resolve to final target. No need for final blit pass.
@@ -326,6 +374,8 @@ namespace UnityEngine.Rendering.Universal
             {
                 m_PostProcessPass.Setup(cameraTargetDescriptor, m_ActiveCameraColorAttachment, m_AfterPostProcessColor, m_ActiveCameraDepthAttachment, m_ColorGradingLut, false, false);
                 EnqueuePass(m_PostProcessPass);
+            }
+
             }
 
 #if UNITY_EDITOR
