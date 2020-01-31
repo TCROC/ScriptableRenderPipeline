@@ -15,7 +15,7 @@ TEXTURE2D(_CameraOpaqueTexture); SAMPLER(sampler_CameraOpaqueTexture);
     #define ALBEDO_MUL albedo.a
 #endif
 
-#if defined(_ALPHAPREMULTIPLY_ON) || defined(_ADDITIVE_ON)
+#if defined(_ALPHAPREMULTIPLY_ON)
     #define SOFT_PARTICLE_MUL_ALBEDO(albedo, val) albedo * val
 #elif defined(_ALPHAMODULATE_ON)
     #define SOFT_PARTICLE_MUL_ALBEDO(albedo, val) half4(lerp(half3(1.0h, 1.0h, 1.0h), albedo.rgb, albedo.a * val), albedo.a * val)
