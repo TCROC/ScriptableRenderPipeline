@@ -348,9 +348,22 @@ namespace UnityEngine.Rendering.Universal.Internal
                 cameraTarget = (m_Destination == RenderTargetHandle.CameraTarget) ? cameraTarget : m_Destination.Identifier();
                 cmd.SetRenderTarget(cameraTarget, colorLoadAction, RenderBufferStoreAction.Store, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.DontCare);
 
+                // With camera stacking we not always resolve post to final screen as we might run post-processing in the middle of the stack.
+                bool finishPostProcessOnScreen = (m_Destination == RenderTargetHandle.CameraTarget || m_HasFinalPass == true);
+
                 if (m_IsStereo)
                 {
                     Blit(cmd, GetSource(), BuiltinRenderTextureType.CurrentActive, m_Materials.uber);
+
+                    // TODO: We need a proper camera texture swap chain in URP.
+                    // For now, when render post-processing in the middle of the camera stack (not resolving to screen)
+                    // we do an extra blit to ping pong results back to color texture. In future we should allow a Swap of the current active color texture
+                    // in the pipeline to avoid this extra blit.
+                    if (!finishPostProcessOnScreen)
+                    {
+                        cmd.SetGlobalTexture("_BlitTex", cameraTarget);
+                        Blit(cmd, BuiltinRenderTextureType.CurrentActive, GetSource(), m_Materials.uber);
+                    }
                 }
                 else
                 {
@@ -360,6 +373,18 @@ namespace UnityEngine.Rendering.Universal.Internal
                         cmd.SetViewport(cameraData.pixelRect);
 
                     cmd.DrawMesh(RenderingUtils.fullscreenMesh, Matrix4x4.identity, m_Materials.uber);
+
+                    // TODO: We need a proper camera texture swap chain in URP.
+                    // For now, when render post-processing in the middle of the camera stack (not resolving to screen)
+                    // we do an extra blit to ping pong results back to color texture. In future we should allow a Swap of the current active color texture
+                    // in the pipeline to avoid this extra blit.
+                    if (!finishPostProcessOnScreen)
+                    {
+                        cmd.SetGlobalTexture("_BlitTex", cameraTarget);
+                        cmd.SetRenderTarget(GetSource(), RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.DontCare);
+                        cmd.DrawMesh(RenderingUtils.fullscreenMesh, Matrix4x4.identity, m_Materials.uber);
+                    }
+
                     cmd.SetViewProjectionMatrices(cameraData.camera.worldToCameraMatrix, cameraData.camera.projectionMatrix);
                 }
 
