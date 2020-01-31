@@ -69,11 +69,14 @@ namespace UnityEngine.Rendering.Universal.Internal
         // We need to do the conversion manually on those
         bool m_EnableSRGBConversionIfNeeded;
 
-        public PostProcessPass(RenderPassEvent evt, PostProcessData data)
+        Material m_BlitMaterial;
+
+        public PostProcessPass(RenderPassEvent evt, PostProcessData data, Material blitMaterial)
         {
             renderPassEvent = evt;
             m_Data = data;
             m_Materials = new MaterialLibrary(data);
+            m_BlitMaterial = blitMaterial;
 
             // Texture format pre-lookup
             if (SystemInfo.IsFormatSupported(GraphicsFormat.B10G11R11_UFloatPack32, FormatUsage.Linear | FormatUsage.Render))
@@ -364,7 +367,7 @@ namespace UnityEngine.Rendering.Universal.Internal
                     if (!finishPostProcessOnScreen)
                     {
                         cmd.SetGlobalTexture("_BlitTex", cameraTarget);
-                        Blit(cmd, BuiltinRenderTextureType.CurrentActive, GetSource(), m_Materials.uber);
+                        Blit(cmd, BuiltinRenderTextureType.CurrentActive, GetSource(), m_BlitMaterial);
                     }
                 }
                 else
@@ -384,7 +387,7 @@ namespace UnityEngine.Rendering.Universal.Internal
                     {
                         cmd.SetGlobalTexture("_BlitTex", cameraTarget);
                         cmd.SetRenderTarget(GetSource(), RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.DontCare);
-                        cmd.DrawMesh(RenderingUtils.fullscreenMesh, Matrix4x4.identity, m_Materials.uber);
+                        cmd.DrawMesh(RenderingUtils.fullscreenMesh, Matrix4x4.identity, m_BlitMaterial);
                     }
 
                     cmd.SetViewProjectionMatrices(cameraData.camera.worldToCameraMatrix, cameraData.camera.projectionMatrix);
